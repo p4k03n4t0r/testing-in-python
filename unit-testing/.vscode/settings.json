@@ -1,14 +1,1 @@
-{
-    "python.testing.unittestArgs": [
-        "-v",
-        "-s",
-        "./tests",
-        "-p",
-        "test_*.py",
-        "--locals"
-    ],
-    "python.testing.pytestEnabled": false,
-    "python.testing.nosetestsEnabled": false,
-    "python.testing.unittestEnabled": true,
-    "testing.automaticallyOpenPeekViewDuringAutoRun": true
-}
+{}

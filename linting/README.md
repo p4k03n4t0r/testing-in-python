@@ -2,6 +2,8 @@
 
 ## Linting: Black
 
+Also formats
+
 ```bash
 https://pypi.org/project/black/
 black --check .
@@ -15,12 +17,14 @@ black .
 }
 ```
 
+## Linting: mypy
+
+Checks types
+
 ```bash
 mypy .
 mypy . --strict
 ```
-
-## Static Code Analysis: mypy
 
 ```json
 {
@@ -29,8 +33,32 @@ mypy . --strict
     "--follow-imports=silent",
     "--show-column-numbers",
     "--strict"
-  ],
-  "python.linting.enabled": true,
-  "python.linting.flake8Enabled": false
+  ]
+}
+```
+
+## Linting: prospector
+Useful extra hints, like unused imports
+
+```bash
+prospector
+```
+
+```json
+{
+  "python.linting.prospector": true
+}
+```
+
+## Linting: pydocstyle
+Helps with documentation
+
+```bash
+pydocstyle
+```
+
+```json
+{
+  "python.linting.pydocstyle": true
 }
 ```
