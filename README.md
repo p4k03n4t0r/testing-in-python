@@ -31,7 +31,16 @@ Static tests are tests where the code isn't run, but just the static code is ana
 
 There are many linters which can be used to format your code. It's hard to say which one is the best, but I prefer [Black](https://github.com/psf/black). The goal of Black is to have (nearly) no configuration for your linter, preventing discussions about the formatting of code. On a project I used to have discussions about this with another teammate, while Black would take away these dicussions.
 
-The linter [mypy](http://mypy-lang.org/) checks typing in Python. Before I programmed Python, I used to program in C# where typing was necessary. When I started with Python I created the habit to not use typing anymore, since it wasn't enforced. Although at first this made things easier, later on I noticed it made the quality of the code more poor.
+The linter [mypy](http://mypy-lang.org/) checks typing in Python. Before I programmed Python, I used to program in C# where typing was necessary. When I started with Python I created the habit to not use typing anymore, since it wasn't enforced. Although at first this made things easier, later on I noticed it made the quality of the code more poor. Still in my opinion typing should be seen as a way to help understand methods and not be to reliant on it, take for example the following code:
+
+```python
+def capitalize(name: str) -> int:
+    # mypy error: Incompatible return value type (got "str", expected "int")
+    return name.capitalize()
+
+print(capitalize("abc"))
+# although the return type indicates an int, the program still runs fine and prints "Abc"
+```
 
 The linter [prospector](http://prospector.landscape.io/en/master/) gives many usefull hints about improvements of the code, like unused variables. Although the hints are nice, they can be a bit too much. So far I haven't actually enforced prospector on a project, but I have just been using hints from prospector.
 
@@ -39,29 +48,21 @@ The linter [pydocstyle](https://github.com/PyCQA/pydocstyle/) forces documentati
 
 ## 2. Unit tests
 
-Level: class
-Use only for isolated, complex logic.
-Cost relatively a lot of time to write for all classes.
-Aren't always realistic, thus can be misleading. If a class is fully covered with tests it might seem good, but if some of the methods are never called by another class the code can be removed. Thus code coverage can't be used to see which code is actually used and which isn't.
+Unit tests are written on the level of classes within a service, while calls to other classes or services are mocked. I think unit tests are a double edged sword: they can help you a lot, but they can also be misleading. Unit tests can help to quickly develop using test driven development (TDD), and I think it's something that the longer you program, the more you'll appreciate. Especially if you have isolated, complex logic it's perfect to write tests and wright your code around them.
 
-### Assert tests
+But I think there is also a dark side of writing unit tests and that is when it's driven by test coverage. A famous tool for measering coverage in Python is, well not that suprising, [coverage](https://coverage.readthedocs.io/). It shows you even in a fancy HTML page the lines which your tests cover and the lines which still aren't covered with unit tests. A goal of some people or teams is to get that 100% coverage and celebrate you have fully covered the code with tests, hooray! I think this is often a waste, since there is a chance that a lot of the code and tests which are written weren't even necessary. When looking at the code coverage for unit tests, this could mislead you whether the code is actually called.
 
-Either in code or via feature files
-
-### Property based tests
-
-Or just fuzzing
-
-### Mutation testing
-
-Interesting, but hard to use in an automated way. Can be useful if used in the right way.
+TODO example divide
 
 ## 3. Service tests
 
-Level: (micro)service
-Test the code in a realistic situation.
-Preferably using feature files. Allows to focus on the functional use of the code. Makes is readable for non technical people and also yourself and the team if you haven't looked at them for some time. If I look at unit tests which I or a teammate has written a few months ago, it's sometimes hard to see what it tries to test.
-Mock only at the end of the service at the interface with another service. This could be a database call or call to another microservice. This allows testing of the whole code of the service via realistic scenario's. Here code coverage can be useful. If you your scenario's properly cover all realistic scenario's, code which isn't covered doesn't do anything and could be removed.
+Service tests are written on the level of a whole service. Here it depends whether calls to other services are mocked. I think it's important here to keep the microservice architecture in mind, where components like databases often aren't shared with other microservices. These components which belong to a microservice shouldn't be mocked, while calls to other services should be mocked. This way the code is tested in a much more realistic situation than unit tests.
+
+I prefer to write theses tests using feature files, for example in Python using [behave](https://github.com/behave/behave). The tests describe in a textual scenario what the service functionally should do. I think this has two very big plus sides. The first is that it allows you to talk with people from the business about the functionality of a service, even if they don't have any techincal knowledge. I once made a mistake to describe an user without technical knowledge what the service did via unit tests. I can't recommend doing this, since the discussion was about a lot of things, but not about what the code should have done functionally.
+
+The second advantage of feature files is that it acts as documentation for myself, the team and other developers within the organisation. I sometimes look at code with some unit tests which was written a few months ago and it's hard for me to understand what the code does without diving into it. If the functionality is described via feature files, it's really easy to understand what the code does without having to dive into it. This is even the same for other developers within the organization.
+
+When I talked about unit tests I said that code coverage can be misleading, since it doesn't tell you whether all tests scenario's are realistic. In comparison to unit tests where calls to other classes within the services could be mocked, at service tests this isn't the case. Only calls to external services are mocked, where the service tests always call the interface or entrypoint of the service. If all the possible scenario's at the interface are covered via a service test (preferably via a feature file), code coverage can really be useful. Here uncovered code could tell you two things: this piece of code is not yet tested and should be tested or this piece of code will realistically be never called, why do we even have it?
 
 ## 4. Integration tests
 
