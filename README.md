@@ -23,7 +23,7 @@ Although I agree with the first and second point, I don't totally agree with the
 1. Static tests
 1. Unit tests
 1. Service tests
-1. Smoke tests
+1. Integration tests
 
 ## 1. Static tests
 
@@ -50,9 +50,53 @@ The linter [pydocstyle](https://github.com/PyCQA/pydocstyle/) forces documentati
 
 Unit tests are written on the level of classes within a service, while calls to other classes or services are mocked. I think unit tests are a double edged sword: they can help you a lot, but they can also be misleading. Unit tests can help to quickly develop using test driven development (TDD), and I think it's something that the longer you program, the more you'll appreciate. Especially if you have isolated, complex logic it's perfect to write tests and wright your code around them.
 
-But I think there is also a dark side of writing unit tests and that is when it's driven by test coverage. A famous tool for measering coverage in Python is, well not that suprising, [coverage](https://coverage.readthedocs.io/). It shows you even in a fancy HTML page the lines which your tests cover and the lines which still aren't covered with unit tests. A goal of some people or teams is to get that 100% coverage and celebrate you have fully covered the code with tests, hooray! I think this is often a waste, since there is a chance that a lot of the code and tests which are written weren't even necessary. When looking at the code coverage for unit tests, this could mislead you whether the code is actually called.
+But I think there is also a dark side of writing unit tests and that is when it's driven by test coverage. A famous tool for measering coverage in Python is, well not that suprising, [coverage](https://coverage.readthedocs.io/). It shows you even in a fancy HTML page the lines which your tests cover and the lines which still aren't covered with unit tests. A goal of some people or teams is to get that 100% coverage and celebrate you have fully covered the code with tests, hooray! I think this is often a waste, since there is a chance that a lot of the code and tests which are written weren't even necessary. When looking at the code coverage for unit tests, this could mislead you whether the code is actually called:
 
-TODO example divide
+```python
+def _divide(x, y):
+    if y == 0:
+        raise ZeroDivisionError()
+    return x / y
+
+def math(x, y, operation):
+    if operation == "divide":
+        if y == 0:
+            raise ZeroDivisionError()
+        return _divide(x, y)
+    # .. other code
+
+def test_divide_divide_by_zero():
+    thrown_error = None
+    try:
+        _divide(1, 0)
+    except ZeroDivisionError as e:
+        thrown_error = e
+    assert thrown_error and isinstance(thrown_error, ZeroDivisionError)
+
+def test_math_divide_by_zero():
+    thrown_error = None
+    try:
+        math(1, 0, "divide")
+    except ZeroDivisionError as e:
+        thrown_error = e
+    assert thrown_error and isinstance(thrown_error, ZeroDivisionError)
+
+# other tests to test the happy flow
+```
+
+Both the `_divide` (internal method) and `math` test whether the `y` value is a zero, since division by zero is not possible. By writing an unit test for both cases (including test cases for the other flows) will result in 100% code coverage, yay! Oh wait, is this actually a good thing? Our tests actually hide a flow which will never be executed. If we assume the `_divide` method is never called by another method within this module, the flow within the if check for zero never happens. Our code coverage hides this, but if we only wrote unit tests at the interface of this module, the `math` method, code coverage would show the flow never happens. This could be an indication that some code is not used and thus the code is more complex than necessary.
+
+Another example of misleading code coverage is as follows:
+
+```python
+def square(x, y):
+    return x + y
+
+def test_square():
+    assert square(2, 2) == 4
+```
+
+Although the test passes, the method by accident returns the right answer. The code coverage here is 100%, but the code doesn't do what it's supposed to do. To find these issues mutation testing could be the solution. With this type of tests the code is randomly 'mutated', for example replacing logical operators. If the test survives after it was mutated, this might indicate there is something wrong. In this case a mutation might change the plus operator to the actual square operator and the test still passes, which indicates we should take a look at this.
 
 ## 3. Service tests
 
@@ -66,6 +110,9 @@ When I talked about unit tests I said that code coverage can be misleading, sinc
 
 ## 4. Integration tests
 
-Level: whole landscape
-Also called end to end tests or smoke tests, their definition is a bit different but their goal is the same: test a new version of a service within the whole landscape. In the previous level of tests a change could pass all tests within the service, but it could cause a failure in another microservice with which it communicates. Integration tests don't mock services, but are run in a production-like environment. They will often prepare a state in the environment, for example injecting the right records into a database, and than do a call at the interface of the landscape. After this call is processed in all services the response can be checked, but also the state of the rest of the environment. The call should have resulted in an additional record in a database for example or a message being put in a queue.
-Of course features files also work for this
+Finally the integration tests cover the whole landscape without any mocks. Also called end to end tests or smoke tests, their definition is a bit different but their goal is the same: test a new version of a service within the whole landscape. In the previous level of tests a change could pass all tests within the service, but it could cause a failure in another microservice with which it communicates. Integration tests don't mock services, but are run in a production-like environment (or even production itself). Similar to service tests, a state can be prepared in the environment, for example injecting the right records into a database. Afterwards a call will be done on the interface of the landscape. After this call is processed in all services the response can be checked, but also the state of the rest of the environment. For example the call should have resulted in an additional record in a database or a message being put in a queue.
+Of course features files also work for this and I really recommend this.
+
+## Closing notes
+
+Although I've said a lot of things about testing in Python, there's still a lot more to talk about. I hope all this information was usefull.
